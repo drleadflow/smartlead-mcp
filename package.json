@@ -1,0 +1,19 @@
+{
+  "name": "smartlead-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "agents": "^0.0.66",
+    "@modelcontextprotocol/sdk": "^1.11.0",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
+    "typescript": "^5.7.0",
+    "wrangler": "^4.0.0"
+  }
+}

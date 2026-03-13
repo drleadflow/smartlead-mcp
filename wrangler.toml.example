@@ -1,0 +1,22 @@
+name = "smartlead-mcp"
+account_id = "203c62d7e81cfe8c46a8321623014797"
+main = "src/index.ts"
+compatibility_date = "2025-03-14"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[durable_objects]
+bindings = [{ name = "MCP_OBJECT", class_name = "SmartLeadMcpAgent" }]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["SmartLeadMcpAgent"]
+
+[[migrations]]
+tag = "v2"
+
+# API key: set via Cloudflare dashboard (Workers > Settings > Variables)
+# or create smartlead-mcp/.dev.vars for local dev:
+#   SMARTLEAD_API_KEY=your-key-here
+[vars]
+SMARTLEAD_API_KEY = "YOUR_SMARTLEAD_API_KEY"

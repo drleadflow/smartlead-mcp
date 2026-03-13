@@ -1,0 +1,19 @@
+name = "smartlead-mcp"
+# account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+main = "src/index.ts"
+compatibility_date = "2025-03-14"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[durable_objects]
+bindings = [{ name = "MCP_OBJECT", class_name = "SmartLeadMcpAgent" }]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["SmartLeadMcpAgent"]
+
+[[migrations]]
+tag = "v2"
+
+[vars]
+SMARTLEAD_API_KEY = "YOUR_SMARTLEAD_API_KEY"
