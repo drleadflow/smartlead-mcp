@@ -2,18 +2,22 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Env } from "../types";
 import { SmartLeadClient } from "../client";
 import { ok, err } from "../helpers";
-import { analyticsQuerySchema, buildAnalyticsQuery } from "./analytics-helpers";
+import { analyticsQuerySchema, buildAnalyticsQuery, buildAnalyticsQueryWithTimezone } from "./analytics-helpers";
 
 export function registerGlobalAnalyticsTools(server: McpServer, env: Env): void {
   // 1. Overall analytics v2
   server.tool(
     "sl_get_overall_analytics",
     "Get account-wide aggregate statistics across all SmartLead campaigns.",
-    {},
-    async () => {
+    { ...analyticsQuerySchema },
+    async (params) => {
       try {
         const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
-        const result = await client.request<unknown>("GET", "/analytics/overall-stats-v2");
+        const result = await client.request<unknown>(
+          "GET",
+          "/analytics/overall-stats-v2",
+          { query: buildAnalyticsQuery(params) }
+        );
         return ok(JSON.stringify(result, null, 2));
       } catch (e) {
         return err(e);
@@ -21,18 +25,17 @@ export function registerGlobalAnalyticsTools(server: McpServer, env: Env): void 
     }
   );
 
-  // 2. Campaign list (analytics context)
+  // 2. Campaign list (analytics context) — does NOT accept date filters
   server.tool(
     "sl_get_analytics_campaign_list",
     "Get campaign list with analytics context from SmartLead.",
-    { ...analyticsQuerySchema },
-    async (params) => {
+    {},
+    async () => {
       try {
         const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
         const result = await client.request<unknown>(
           "GET",
-          "/analytics/campaign/list",
-          { query: buildAnalyticsQuery(params) }
+          "/analytics/campaign/list"
         );
         return ok(JSON.stringify(result, null, 2));
       } catch (e) {
@@ -45,11 +48,15 @@ export function registerGlobalAnalyticsTools(server: McpServer, env: Env): void 
   server.tool(
     "sl_get_analytics_campaign_overall",
     "Get aggregate campaign performance metrics from SmartLead analytics.",
-    {},
-    async () => {
+    { ...analyticsQuerySchema },
+    async (params) => {
       try {
         const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
-        const result = await client.request<unknown>("GET", "/analytics/campaign/overall-stats");
+        const result = await client.request<unknown>(
+          "GET",
+          "/analytics/campaign/overall-stats",
+          { query: buildAnalyticsQuery(params) }
+        );
         return ok(JSON.stringify(result, null, 2));
       } catch (e) {
         return err(e);
@@ -77,18 +84,17 @@ export function registerGlobalAnalyticsTools(server: McpServer, env: Env): void 
     }
   );
 
-  // 5. Campaign status stats
+  // 5. Campaign status stats — does NOT accept date filters
   server.tool(
     "sl_get_analytics_campaign_status",
     "Get campaign count by status (active, paused, stopped, etc.) from SmartLead.",
-    { ...analyticsQuerySchema },
-    async (params) => {
+    {},
+    async () => {
       try {
         const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
         const result = await client.request<unknown>(
           "GET",
-          "/analytics/campaign/status-stats",
-          { query: buildAnalyticsQuery(params) }
+          "/analytics/campaign/status-stats"
         );
         return ok(JSON.stringify(result, null, 2));
       } catch (e) {
@@ -177,10 +183,10 @@ export function registerGlobalAnalyticsTools(server: McpServer, env: Env): void 
     }
   );
 
-  // 10. Day-wise overall stats by sent time
+  // 10. Day-wise overall stats by sent time (requires timezone)
   server.tool(
     "sl_get_analytics_daywise_by_sent_time",
-    "Get daily email metrics organized by sent time from SmartLead.",
+    "Get daily email metrics organized by sent time from SmartLead. Requires timezone (defaults to America/New_York).",
     { ...analyticsQuerySchema },
     async (params) => {
       try {
@@ -188,7 +194,7 @@ export function registerGlobalAnalyticsTools(server: McpServer, env: Env): void 
         const result = await client.request<unknown>(
           "GET",
           "/analytics/day-wise-overall-stats-by-sent-time",
-          { query: buildAnalyticsQuery(params) }
+          { query: buildAnalyticsQueryWithTimezone(params) }
         );
         return ok(JSON.stringify(result, null, 2));
       } catch (e) {
@@ -217,10 +223,10 @@ export function registerGlobalAnalyticsTools(server: McpServer, env: Env): void 
     }
   );
 
-  // 12. Positive reply stats by sent time
+  // 12. Positive reply stats by sent time (requires timezone)
   server.tool(
     "sl_get_analytics_positive_replies_by_sent_time",
-    "Get positive reply stats organized by email sent time from SmartLead.",
+    "Get positive reply stats organized by email sent time from SmartLead. Requires timezone (defaults to America/New_York).",
     { ...analyticsQuerySchema },
     async (params) => {
       try {
@@ -228,7 +234,7 @@ export function registerGlobalAnalyticsTools(server: McpServer, env: Env): void 
         const result = await client.request<unknown>(
           "GET",
           "/analytics/day-wise-positive-reply-stats-by-sent-time",
-          { query: buildAnalyticsQuery(params) }
+          { query: buildAnalyticsQueryWithTimezone(params) }
         );
         return ok(JSON.stringify(result, null, 2));
       } catch (e) {

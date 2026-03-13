@@ -75,14 +75,31 @@ export function registerAnalyticsTools(server: McpServer, env: Env): void {
   // b. Get top-level analytics across all campaigns
   server.tool(
     "sl_get_all_campaign_analytics",
-    "Get aggregated analytics across all SmartLead campaigns using the overall stats endpoint.",
-    {},
-    async () => {
+    "Get aggregated analytics across all SmartLead campaigns using the overall stats endpoint. Defaults to last 30 days if no dates provided.",
+    {
+      start_date: z
+        .string()
+        .optional()
+        .describe("Start date (YYYY-MM-DD). Defaults to 30 days ago."),
+      end_date: z
+        .string()
+        .optional()
+        .describe("End date (YYYY-MM-DD). Defaults to today."),
+    },
+    async ({ start_date, end_date }) => {
       try {
         const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
+        const now = new Date();
+        const thirtyAgo = new Date();
+        thirtyAgo.setDate(thirtyAgo.getDate() - 30);
+        const query: Record<string, string> = {
+          start_date: start_date ?? thirtyAgo.toISOString().slice(0, 10),
+          end_date: end_date ?? now.toISOString().slice(0, 10),
+        };
         const result = await client.request<unknown>(
           "GET",
-          "/analytics/overall-stats-v2"
+          "/analytics/overall-stats-v2",
+          { query }
         );
         return ok(JSON.stringify(result, null, 2));
       } catch (e) {

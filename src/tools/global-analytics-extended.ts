@@ -9,11 +9,15 @@ export function registerGlobalAnalyticsExtendedTools(server: McpServer, env: Env
   server.tool(
     "sl_get_analytics_lead_overall",
     "Get comprehensive lead engagement statistics by status and category from SmartLead.",
-    {},
-    async () => {
+    { ...analyticsQuerySchema },
+    async (params) => {
       try {
         const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
-        const result = await client.request<unknown>("GET", "/analytics/lead/overall-stats");
+        const result = await client.request<unknown>(
+          "GET",
+          "/analytics/lead/overall-stats",
+          { query: buildAnalyticsQuery(params) }
+        );
         return ok(JSON.stringify(result, null, 2));
       } catch (e) {
         return err(e);
@@ -101,18 +105,17 @@ export function registerGlobalAnalyticsExtendedTools(server: McpServer, env: Env
     }
   );
 
-  // 6. Client list (analytics)
+  // 6. Client list (analytics) — does NOT accept date filters
   server.tool(
     "sl_get_analytics_client_list",
     "Get all clients for agency account filtering from SmartLead analytics.",
-    { ...analyticsQuerySchema },
-    async (params) => {
+    {},
+    async () => {
       try {
         const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
         const result = await client.request<unknown>(
           "GET",
-          "/analytics/client/list",
-          { query: buildAnalyticsQuery(params) }
+          "/analytics/client/list"
         );
         return ok(JSON.stringify(result, null, 2));
       } catch (e) {
@@ -141,18 +144,17 @@ export function registerGlobalAnalyticsExtendedTools(server: McpServer, env: Env
     }
   );
 
-  // 8. Month-wise client count
+  // 8. Month-wise client count — does NOT accept date filters
   server.tool(
     "sl_get_analytics_monthly_client_count",
     "Get monthly breakdown of active clients showing growth trends from SmartLead.",
-    { ...analyticsQuerySchema },
-    async (params) => {
+    {},
+    async () => {
       try {
         const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
         const result = await client.request<unknown>(
           "GET",
-          "/analytics/client/month-wise-count",
-          { query: buildAnalyticsQuery(params) }
+          "/analytics/client/month-wise-count"
         );
         return ok(JSON.stringify(result, null, 2));
       } catch (e) {
