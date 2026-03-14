@@ -1,6 +1,19 @@
+<p align="center">
+  <img src="https://img.shields.io/badge/Cloudflare_Workers-F38020?style=for-the-badge&logo=cloudflare&logoColor=white" alt="Cloudflare Workers" />
+  <img src="https://img.shields.io/badge/MCP_Protocol-6366F1?style=for-the-badge&logo=anthropic&logoColor=white" alt="MCP" />
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/SmartLead.ai-FF6B35?style=for-the-badge" alt="SmartLead" />
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/tools-67-brightgreen" alt="67 Tools" />
+  <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License" />
+  <img src="https://img.shields.io/badge/node-%3E%3D18-green" alt="Node >= 18" />
+</p>
+
 # SmartLead MCP Server
 
-A comprehensive [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server for the [SmartLead.ai](https://smartlead.ai) cold email platform. Deploy as a **Cloudflare Worker** and connect it to Claude Desktop, Claude Code, or any MCP-compatible client to manage your entire SmartLead account through natural language.
+A comprehensive [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server for the [SmartLead.ai](https://smartlead.ai) cold email platform. Deploy as a **Cloudflare Worker** and connect it to Claude, Cursor, Windsurf, or any MCP-compatible client to manage your entire SmartLead account through natural language.
 
 **67 tools** covering the full SmartLead API: campaigns, leads, email accounts, sequences, webhooks, analytics, warmup, master inbox, and more.
 
@@ -9,17 +22,32 @@ A comprehensive [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 
 ## Architecture
 
 ```
-Claude / MCP Client
-        |
-        | MCP Protocol (SSE)
-        v
- Cloudflare Worker
- (Durable Object)
-        |
-        | HTTPS + API Key
-        v
- SmartLead API
- server.smartlead.ai/api/v1
+┌─────────────────────────┐
+│  Claude / MCP Client    │
+│  (Desktop, Code, etc.)  │
+└───────────┬─────────────┘
+            │ MCP Protocol (SSE)
+            v
+┌─────────────────────────┐
+│   Cloudflare Worker      │
+│   (Durable Object)       │
+│                          │
+│  ┌────────────────────┐  │
+│  │  Rate Limiter      │  │
+│  │  10 req / 2 sec    │  │
+│  └────────┬───────────┘  │
+│           │              │
+│  ┌────────v───────────┐  │
+│  │  Retry + Backoff   │  │
+│  │  3 retries, jitter │  │
+│  └────────┬───────────┘  │
+└───────────┼──────────────┘
+            │ HTTPS + API Key
+            v
+┌─────────────────────────┐
+│   SmartLead API          │
+│   server.smartlead.ai    │
+└─────────────────────────┘
 ```
 
 - **Cloudflare Workers** -- serverless, globally distributed, ~50ms cold start
@@ -87,7 +115,7 @@ curl https://smartlead-mcp.YOUR-SUBDOMAIN.workers.dev/mcp
 
 ### Claude Code (CLI)
 
-Add the MCP server to your Claude Code settings. Edit `~/.claude.json` and add under `mcpServers`:
+Add to your Claude Code config. Edit `~/.claude.json`:
 
 ```json
 {
@@ -100,13 +128,16 @@ Add the MCP server to your Claude Code settings. Edit `~/.claude.json` and add u
 }
 ```
 
-Then restart Claude Code. All 67 `sl_*` tools will be available immediately.
+Restart Claude Code. All 67 `sl_*` tools are immediately available.
+
+**Scope options:**
+- `~/.claude.json` -- available in all projects (user scope)
+- `PROJECT_DIR/.claude/settings.json` -- available in one project only
 
 ### Claude Desktop
 
-1. Open Claude Desktop **Settings** (gear icon)
-2. Go to **Developer** > **Edit Config**
-3. Add to `mcpServers`:
+1. Open **Settings** > **Developer** > **Edit Config**
+2. Add to `mcpServers`:
 
 ```json
 {
@@ -119,10 +150,10 @@ Then restart Claude Code. All 67 `sl_*` tools will be available immediately.
 }
 ```
 
-4. Restart Claude Desktop
-5. You'll see a hammer icon indicating MCP tools are connected
+3. Restart Claude Desktop
+4. Look for the hammer icon -- MCP tools are connected
 
-### Any MCP Client
+### Cursor / Windsurf / Other MCP Clients
 
 Point your MCP client to:
 ```
@@ -130,6 +161,17 @@ https://smartlead-mcp.YOUR-SUBDOMAIN.workers.dev/mcp
 ```
 
 The server speaks standard MCP over Server-Sent Events (SSE). No authentication is required on the MCP side -- the SmartLead API key is stored securely in the Cloudflare Worker.
+
+### What You Can Do After Connecting
+
+Ask Claude things like:
+- *"List all my SmartLead campaigns"*
+- *"Show me the reply rate for campaign 12345"*
+- *"Create a new campaign called Q1 Outreach"*
+- *"Add these 50 leads to campaign 12345"*
+- *"Check warmup stats for all my email accounts"*
+- *"Set up a webhook for replies on campaign 12345"*
+- *"What's my domain health across all accounts?"*
 
 ---
 
@@ -417,13 +459,15 @@ Check your `account_id` in `wrangler.toml` matches your Cloudflare account.
 
 ## Tech Stack
 
-- [Cloudflare Workers](https://developers.cloudflare.com/workers/) -- serverless runtime
-- [Cloudflare Durable Objects](https://developers.cloudflare.com/durable-objects/) -- persistent state
-- [Model Context Protocol](https://modelcontextprotocol.io) -- AI tool protocol
-- [MCP SDK](https://www.npmjs.com/package/@modelcontextprotocol/sdk) -- official TypeScript SDK
-- [Agents Framework](https://www.npmjs.com/package/agents) -- Cloudflare's McpAgent base class
-- [Zod](https://zod.dev) -- runtime parameter validation
-- [TypeScript](https://www.typescriptlang.org/) -- strict mode
+| Component | Technology |
+|-----------|-----------|
+| Runtime | [Cloudflare Workers](https://developers.cloudflare.com/workers/) |
+| State | [Durable Objects](https://developers.cloudflare.com/durable-objects/) |
+| Protocol | [Model Context Protocol (MCP)](https://modelcontextprotocol.io) |
+| MCP SDK | [@modelcontextprotocol/sdk](https://www.npmjs.com/package/@modelcontextprotocol/sdk) |
+| Agent Base | [agents](https://www.npmjs.com/package/agents) (Cloudflare McpAgent) |
+| Validation | [Zod](https://zod.dev) |
+| Language | [TypeScript](https://www.typescriptlang.org/) (strict mode) |
 
 ---
 
