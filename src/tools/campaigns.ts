@@ -259,4 +259,134 @@ export function registerCampaignTools(server: McpServer, env: Env): void {
       }
     }
   );
+
+  // 13. Create subsequence
+  server.tool(
+    "sl_create_subsequence",
+    "Create a subsequence campaign that leads can be moved to based on behavioral triggers.",
+    {
+      campaignId: z.number().describe("The SmartLead campaign ID"),
+      subsequence_name: z.string().optional().describe("Name for the subsequence"),
+      condition_events: z.array(z.string()).optional().describe("Array of behavioral trigger events"),
+    },
+    async ({ campaignId, subsequence_name, condition_events }) => {
+      try {
+        const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
+        const body: Record<string, unknown> = {};
+        if (subsequence_name !== undefined) body.subsequence_name = subsequence_name;
+        if (condition_events !== undefined) body.condition_events = condition_events;
+        const result = await client.request<unknown>("POST", `/campaigns/${campaignId}/create-subsequence`, { body });
+        return ok(JSON.stringify(result, null, 2));
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
+
+  // 14. Reply to campaign lead
+  server.tool(
+    "sl_reply_to_campaign_lead",
+    "Reply to a lead's email thread within a campaign, maintaining conversation context.",
+    {
+      campaignId: z.number().describe("The SmartLead campaign ID"),
+      email_stats_id: z.string().describe("The email stats ID for the thread to reply to"),
+      email_body: z.string().describe("The reply email body content"),
+      to_email: z.string().optional().describe("Override recipient email address"),
+      scheduled_time: z.string().optional().describe("ISO datetime to schedule the reply"),
+      cc: z.string().optional().describe("CC email address"),
+      bcc: z.string().optional().describe("BCC email address"),
+      add_signature: z.boolean().optional().describe("Whether to include the email signature"),
+      attachments: z.array(
+        z.object({
+          file_url: z.string().describe("URL of the attachment file"),
+          file_name: z.string().optional().describe("Display name for the attachment"),
+          file_type: z.string().optional().describe("MIME type of the attachment"),
+        })
+      ).optional().describe("Array of file attachments"),
+    },
+    async ({ campaignId, email_stats_id, email_body, to_email, scheduled_time, cc, bcc, add_signature, attachments }) => {
+      try {
+        const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
+        const body: Record<string, unknown> = { email_stats_id, email_body };
+        if (to_email !== undefined) body.to_email = to_email;
+        if (scheduled_time !== undefined) body.scheduled_time = scheduled_time;
+        if (cc !== undefined) body.cc = cc;
+        if (bcc !== undefined) body.bcc = bcc;
+        if (add_signature !== undefined) body.add_signature = add_signature;
+        if (attachments !== undefined) body.attachments = attachments;
+        const result = await client.request<unknown>("POST", `/campaigns/${campaignId}/reply-email-thread`, { body });
+        return ok(JSON.stringify(result, null, 2));
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
+
+  // 15. Send test email
+  server.tool(
+    "sl_send_test_email",
+    "Send a test email from a specific sequence step to verify content and deliverability.",
+    {
+      campaignId: z.number().describe("The SmartLead campaign ID"),
+      leadId: z.number().describe("Lead ID for personalization context"),
+      sequenceNumber: z.number().describe("Which sequence step to test"),
+      selectedEmailAccountId: z.number().optional().describe("Email account ID to send from"),
+      customEmailAddress: z.string().optional().describe("Custom email address to send the test to"),
+    },
+    async ({ campaignId, leadId, sequenceNumber, selectedEmailAccountId, customEmailAddress }) => {
+      try {
+        const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
+        const body: Record<string, unknown> = { leadId, sequenceNumber };
+        if (selectedEmailAccountId !== undefined) body.selectedEmailAccountId = selectedEmailAccountId;
+        if (customEmailAddress !== undefined) body.customEmailAddress = customEmailAddress;
+        const result = await client.request<unknown>("POST", `/campaigns/${campaignId}/send-test-email`, { body });
+        return ok(JSON.stringify(result, null, 2));
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
+
+  // 16. Update campaign team member
+  server.tool(
+    "sl_update_campaign_team_member",
+    "Assign or remove a team member from managing a campaign.",
+    {
+      campaignId: z.number().describe("The SmartLead campaign ID"),
+      teamMemberId: z.number().nullable().describe("Team member ID to assign, or null to unassign"),
+    },
+    async ({ campaignId, teamMemberId }) => {
+      try {
+        const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
+        const body: Record<string, unknown> = { teamMemberId };
+        const result = await client.request<unknown>("POST", `/campaigns/${campaignId}/team-member`, { body });
+        return ok(JSON.stringify(result, null, 2));
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
+
+  // 17. Forward campaign email
+  server.tool(
+    "sl_forward_campaign_email",
+    "Forward a campaign email to a team member or external recipient.",
+    {
+      campaignId: z.number().describe("The SmartLead campaign ID"),
+      email_stats_id: z.string().describe("The email stats ID of the email to forward"),
+      forward_to_email: z.string().describe("Email address to forward to"),
+      forward_message: z.string().optional().describe("Optional message to include with the forwarded email"),
+    },
+    async ({ campaignId, email_stats_id, forward_to_email, forward_message }) => {
+      try {
+        const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
+        const body: Record<string, unknown> = { email_stats_id, forward_to_email };
+        if (forward_message !== undefined) body.forward_message = forward_message;
+        const result = await client.request<unknown>("POST", `/campaigns/${campaignId}/forward-email`, { body });
+        return ok(JSON.stringify(result, null, 2));
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
 }

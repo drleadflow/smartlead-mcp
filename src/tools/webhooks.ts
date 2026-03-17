@@ -152,4 +152,69 @@ export function registerWebhookTools(server: McpServer, env: Env): void {
       }
     }
   );
+
+  // g. Get webhook summary for a campaign
+  server.tool(
+    "sl_get_webhook_summary",
+    "Get webhook execution statistics for a campaign. Requires fromTime and toTime date range.",
+    {
+      campaignId: z.number().describe("The SmartLead campaign ID"),
+      fromTime: z.string().describe("Start of date range (ISO 8601, e.g. 2025-01-01T00:00:00Z)"),
+      toTime: z.string().describe("End of date range (ISO 8601, e.g. 2026-12-31T00:00:00Z)"),
+    },
+    async ({ campaignId, fromTime, toTime }) => {
+      try {
+        const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
+        const result = await client.request<unknown>("GET", `/campaigns/${campaignId}/webhooks/summary`, {
+          query: { fromTime, toTime },
+        });
+        return ok(JSON.stringify(result, null, 2));
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
+
+  // h. Retrigger failed webhooks
+  server.tool(
+    "sl_retrigger_webhooks",
+    "Manually retry failed webhook deliveries for a SmartLead campaign.",
+    {
+      campaignId: z.number().describe("The SmartLead campaign ID"),
+    },
+    async ({ campaignId }) => {
+      try {
+        const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
+        const result = await client.request<unknown>("POST", `/campaigns/${campaignId}/retrigger-webhooks`);
+        return ok(JSON.stringify(result, null, 2));
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
+
+  // i. Update global webhook
+  server.tool(
+    "sl_update_global_webhook",
+    "Update an existing SmartLead webhook configuration.",
+    {
+      webhookId: z.number().describe("The webhook ID to update"),
+      webhook_url: z.string().url().optional().describe("New webhook URL"),
+      name: z.string().optional().describe("New webhook name"),
+      event_type_map: z.record(z.boolean()).optional().describe("Event toggle map, e.g. {EMAIL_REPLY: true}"),
+    },
+    async ({ webhookId, webhook_url, name, event_type_map }) => {
+      try {
+        const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
+        const body: Record<string, unknown> = {};
+        if (webhook_url !== undefined) body.webhook_url = webhook_url;
+        if (name !== undefined) body.name = name;
+        if (event_type_map !== undefined) body.event_type_map = event_type_map;
+        const result = await client.request<unknown>("PUT", `/webhook/update/${webhookId}`, { body });
+        return ok(JSON.stringify(result, null, 2));
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
 }

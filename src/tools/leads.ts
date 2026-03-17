@@ -311,4 +311,161 @@ export function registerLeadTools(server: McpServer, env: Env): void {
       }
     }
   );
+
+  // 12. Get campaign lead by ID
+  server.tool(
+    "sl_get_campaign_lead_by_id",
+    "Get detailed info for a specific lead in a campaign including contact data, engagement stats, and custom fields.",
+    {
+      campaignId: z.number().describe("The SmartLead campaign ID"),
+      leadId: z.number().describe("The lead ID to retrieve"),
+    },
+    async ({ campaignId, leadId }) => {
+      try {
+        const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
+        const result = await client.request<unknown>(
+          "GET",
+          `/campaigns/${campaignId}/leads/${leadId}`
+        );
+        return ok(JSON.stringify(result, null, 2));
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
+
+  // 13. Get lead message history
+  server.tool(
+    "sl_get_lead_message_history",
+    "Get the complete email conversation thread for a lead including sent emails, replies, timestamps, and engagement data.",
+    {
+      campaignId: z.number().describe("The SmartLead campaign ID"),
+      leadId: z.number().describe("The lead ID"),
+      show_plain_text_response: z.boolean().optional().describe("Return plain text instead of HTML body"),
+    },
+    async ({ campaignId, leadId, show_plain_text_response }) => {
+      try {
+        const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
+        const query: Record<string, string> = {};
+        if (show_plain_text_response !== undefined)
+          query.show_plain_text_response = String(show_plain_text_response);
+        const result = await client.request<unknown>(
+          "GET",
+          `/campaigns/${campaignId}/leads/${leadId}/message-history`,
+          { query }
+        );
+        return ok(JSON.stringify(result, null, 2));
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
+
+  // 14. Get bulk lead message history
+  server.tool(
+    "sl_get_bulk_lead_message_history",
+    "Get email conversation history for multiple leads in bulk. Pass null for lead_ids to get all leads.",
+    {
+      campaignId: z.number().describe("The SmartLead campaign ID"),
+      workspaceId: z.number().describe("The SmartLead workspace ID"),
+      lead_ids: z.array(z.number()).nullable().optional().describe("Array of lead IDs, or null to get all leads"),
+    },
+    async ({ campaignId, workspaceId, lead_ids }) => {
+      try {
+        const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
+        const body: Record<string, unknown> = {
+          lead_ids: lead_ids ?? null,
+        };
+        const result = await client.request<unknown>(
+          "POST",
+          `/campaigns/${campaignId}/message-history-for-leads/${workspaceId}`,
+          { body }
+        );
+        return ok(JSON.stringify(result, null, 2));
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
+
+  // 15. Update lead category
+  server.tool(
+    "sl_update_lead_category",
+    "Update a lead's category in a campaign (e.g. Interested, Not Interested). Pass null to remove category.",
+    {
+      campaignId: z.number().describe("The SmartLead campaign ID"),
+      leadId: z.number().describe("The lead ID"),
+      category_id: z.number().nullable().describe("Category ID to assign, or null to remove category"),
+      pause_lead: z.boolean().optional().describe("Whether to pause the lead after updating category (default false)"),
+    },
+    async ({ campaignId, leadId, category_id, pause_lead }) => {
+      try {
+        const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
+        const body: Record<string, unknown> = { category_id };
+        if (pause_lead !== undefined) body.pause_lead = pause_lead;
+        const result = await client.request<unknown>(
+          "POST",
+          `/campaigns/${campaignId}/leads/${leadId}/category`,
+          { body }
+        );
+        return ok(JSON.stringify(result, null, 2));
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
+
+  // 16. Update lead email account
+  server.tool(
+    "sl_update_lead_email_account",
+    "Change which email account sends to a specific lead for deliverability optimization.",
+    {
+      email_account_id: z.number().describe("The new email account ID to assign"),
+      email_campaign_id: z.number().describe("The campaign ID"),
+      email_lead_id: z.number().describe("The lead ID within the campaign"),
+      override_lead_email_account: z.boolean().optional().describe("Override even if lead already has an assigned account"),
+    },
+    async ({ email_account_id, email_campaign_id, email_lead_id, override_lead_email_account }) => {
+      try {
+        const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
+        const body: Record<string, unknown> = {
+          email_account_id,
+          email_campaign_id,
+          email_lead_id,
+        };
+        if (override_lead_email_account !== undefined)
+          body.override_lead_email_account = override_lead_email_account;
+        const result = await client.request<unknown>(
+          "POST",
+          "/campaigns/update-lead-email-account",
+          { body }
+        );
+        return ok(JSON.stringify(result, null, 2));
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
+
+  // 17. Mark lead as complete
+  server.tool(
+    "sl_mark_lead_complete",
+    "Manually mark a lead as completed in a campaign, stopping further email sends without unsubscribing.",
+    {
+      campaignId: z.number().describe("The SmartLead campaign ID"),
+      leadMapId: z.number().describe("The campaign_lead_map_id for the lead"),
+    },
+    async ({ campaignId, leadMapId }) => {
+      try {
+        const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
+        const result = await client.request<unknown>(
+          "POST",
+          `/campaigns/${campaignId}/leads/${leadMapId}/manual-complete`
+        );
+        return ok(JSON.stringify(result, null, 2));
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
 }

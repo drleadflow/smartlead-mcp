@@ -100,4 +100,28 @@ export function registerStatisticsTools(server: McpServer, env: Env): void {
       }
     }
   );
+
+  // 5. Get top-level campaign analytics by date range
+  server.tool(
+    "sl_get_campaign_top_level_analytics_by_date",
+    "Get high-level campaign metrics (sent, delivered, open rate, reply rate) for a specific date range.",
+    {
+      campaignId: z.number().describe("The SmartLead campaign ID"),
+      start_date: z.string().describe("Start date in YYYY-MM-DD format"),
+      end_date: z.string().describe("End date in YYYY-MM-DD format"),
+    },
+    async ({ campaignId, start_date, end_date }) => {
+      try {
+        const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
+        const result = await client.request<unknown>(
+          "GET",
+          `/campaigns/${campaignId}/top-level-analytics-by-date`,
+          { query: { start_date, end_date } }
+        );
+        return ok(JSON.stringify(result, null, 2));
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
 }

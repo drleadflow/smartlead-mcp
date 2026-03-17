@@ -264,4 +264,46 @@ export function registerAccountTools(server: McpServer, env: Env): void {
       }
     }
   );
+
+  // i. Suspend email account
+  server.tool(
+    "sl_suspend_email_account",
+    "Suspend a SmartLead email account, pausing all sending and warmup activity.",
+    {
+      emailAccountId: z.number().describe("The email account ID to suspend"),
+    },
+    async ({ emailAccountId }) => {
+      try {
+        const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
+        const result = await client.request<unknown>(
+          "PUT",
+          `/email-accounts/suspend/${emailAccountId}`
+        );
+        return ok(JSON.stringify(result, null, 2));
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
+
+  // j. Unsuspend email account
+  server.tool(
+    "sl_unsuspend_email_account",
+    "Unsuspend a previously suspended SmartLead email account, resuming sending and warmup.",
+    {
+      emailAccountId: z.number().describe("The email account ID to unsuspend"),
+    },
+    async ({ emailAccountId }) => {
+      try {
+        const client = new SmartLeadClient(env.SMARTLEAD_API_KEY);
+        const result = await client.request<unknown>(
+          "DELETE",
+          `/email-accounts/unsuspend/${emailAccountId}`
+        );
+        return ok(JSON.stringify(result, null, 2));
+      } catch (e) {
+        return err(e);
+      }
+    }
+  );
 }
